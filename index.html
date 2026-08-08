@@ -1,0 +1,2283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GATE CSE 2027 | Gaokao Protocol Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090b;
+            --surface: rgba(255, 255, 255, 0.04);
+            --surface-hover: rgba(255, 255, 255, 0.07);
+            --surface-card: rgba(18, 18, 24, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-1: #6366f1;
+            --accent-2: #8b5cf6;
+            --accent-grad: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --skipped: #64748b;
+            --gold: #eab308;
+            
+            --sidebar-width: 72px;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
+        }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: rgba(12, 12, 16, 0.85);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            z-index: 50;
+            backdrop-filter: blur(16px);
+            justify-content: space-between;
+        }
+
+        .sidebar-brand {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--accent-grad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 18px;
+            color: white;
+            box-shadow: 0 4px 16px var(--accent-glow);
+            margin-bottom: 24px;
+            cursor: pointer;
+        }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .nav-item {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-item svg { width: 22px; height: 22px; stroke-width: 1.8; stroke: currentColor; fill: none; }
+
+        .nav-item:hover {
+            background: var(--surface-hover);
+            color: var(--text-main);
+            transform: translateY(-2px);
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: #818cf8;
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        /* Sidebar Tooltip */
+        .nav-item::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 62px;
+            background: #181824;
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            transform: translateX(-6px);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 100;
+        }
+
+        .nav-item:hover::after {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* --- MAIN WRAPPER --- */
+        #main-wrapper {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 32px 40px;
+            position: relative;
+        }
+
+        .page {
+            display: none;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-bottom: 60px;
+        }
+
+        .page.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- TYPOGRAPHY & HEADERS --- */
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .gradient-text {
+            background: var(--accent-grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-indigo { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .badge-purple { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* --- CARDS & GRID --- */
+        .card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+        .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+        @media (max-width: 1100px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: repeat(1, 1fr); }
+            .grid-1-2, .grid-2-1 { grid-template-columns: 1fr; }
+        }
+
+        /* --- HERO COUNTDOWN --- */
+        .countdown-hero {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 20px;
+            padding: 28px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .countdown-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .timer-units {
+            display: flex;
+            gap: 20px;
+        }
+
+        .timer-unit {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 18px;
+            border-radius: 12px;
+            min-width: 76px;
+        }
+
+        .timer-num {
+            font-size: 32px;
+            font-weight: 900;
+            color: #ffffff;
+            font-family: monospace;
+            line-height: 1;
+        }
+
+        .timer-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        /* --- BUTTONS & FORMS --- */
+        .btn {
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--accent-grad);
+            color: white;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-main);
+            border-color: var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--border-hover);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 11px 14px;
+            background: rgba(10, 10, 15, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent-1);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group { margin-bottom: 18px; }
+
+        /* --- TIME BLOCKS (GAOKAO PROTOCOL) --- */
+        .block-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+        .block-card:hover { border-color: var(--border-hover); }
+
+        .block-info { flex: 1; padding-right: 16px; }
+        .block-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .block-desc { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+
+        .status-toggle {
+            display: flex;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .status-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .status-btn.active.done { background: var(--success); color: white; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4); }
+        .status-btn.active.partial { background: var(--warning); color: white; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); }
+        .status-btn.active.skipped { background: var(--skipped); color: white; }
+        .status-btn.active.pending { background: rgba(255, 255, 255, 0.15); color: white; }
+
+        /* --- PROGRESS RINGS --- */
+        .ring-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .svg-ring-wrap {
+            position: relative;
+            width: 84px;
+            height: 84px;
+        }
+
+        .svg-ring-wrap svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .svg-ring-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.08);
+            stroke-width: 7;
+        }
+
+        .svg-ring-val {
+            fill: none;
+            stroke: url(#indigo-grad);
+            stroke-width: 7;
+            stroke-linecap: round;
+            stroke-dasharray: 238.76;
+            stroke-dashoffset: 238.76;
+            transition: stroke-dashoffset 1s ease;
+        }
+
+        .ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            font-weight: 800;
+            color: white;
+        }
+
+        /* --- TABLES --- */
+        .table-responsive { width: 100%; overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            padding: 12px 16px;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+        }
+
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(4, 4, 8, 0.75);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-content {
+            background: #12121a;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 560px;
+            padding: 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            transform: scale(0.95);
+            transition: transform 0.2s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title { font-size: 18px; font-weight: 700; }
+        .modal-close {
+            background: none; border: none; color: var(--text-muted);
+            font-size: 20px; cursor: pointer; padding: 4px;
+        }
+        .modal-close:hover { color: white; }
+
+        /* --- TOAST NOTIFICATIONS --- */
+        #toast-container {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: #1e1e2d;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent-1);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+            animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes toastIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* --- CALENDAR GRID --- */
+        .cal-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .cal-day-name {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .cal-day {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .cal-day:hover { background: rgba(255, 255, 255, 0.06); border-color: var(--border-hover); }
+        .cal-day.empty { background: transparent; border-color: transparent; cursor: default; }
+        .cal-day.today { border-color: var(--accent-1); box-shadow: 0 0 10px var(--accent-glow); }
+        .cal-day.has-mock { border-left: 3px solid var(--accent-2); }
+        .cal-day.has-test { border-left: 3px solid var(--warning); }
+        .cal-day.log-done { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3); }
+
+        .cal-day-num { font-weight: 700; }
+        .cal-day-badge { font-size: 9px; padding: 1px 4px; border-radius: 4px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* --- POMODORO WIDGET --- */
+        .pomo-card {
+            text-align: center;
+            background: linear-gradient(135deg, rgba(30, 30, 45, 0.6) 0%, rgba(20, 20, 30, 0.6) 100%);
+        }
+
+        .pomo-time {
+            font-size: 48px;
+            font-weight: 900;
+            font-family: monospace;
+            letter-spacing: 2px;
+            margin: 12px 0;
+            color: #ffffff;
+        }
+
+        .pomo-controls { display: flex; justify-content: center; gap: 10px; }
+
+        /* --- SUBJECT CARD TOPIC LIST --- */
+        .topic-list {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .topic-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .topic-item:hover { background: rgba(255, 255, 255, 0.05); }
+
+        .topic-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-1);
+            cursor: pointer;
+        }
+
+        .topic-name.completed {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        /* STATS PILL */
+        .stat-pill {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            padding: 16px 20px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .stat-pill-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+        .stat-pill-value { font-size: 24px; font-weight: 800; color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- SVG GRADIENT DEFINITIONS -->
+    <svg style="width:0;height:0;position:absolute;">
+        <defs>
+            <linearGradient id="indigo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6366f1" />
+                <stop offset="100%" stop-color="#8b5cf6" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <!-- FIXED SIDEBAR -->
+    <aside id="sidebar">
+        <div>
+            <div class="sidebar-brand" onclick="navigateTo('dashboard')">G27</div>
+            <div class="nav-group">
+                <button class="nav-item active" data-tooltip="Dashboard (D)" onclick="navigateTo('dashboard')">
+                    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                </button>
+                <button class="nav-item" data-tooltip="Subjects (S)" onclick="navigateTo('subjects')">
+                    <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                </button>
+                <button class="nav-item" data-tooltip="PYQ Warfare (P)" onclick="navigateTo('pyq')">
+                    <svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                </button>
+                <button class="nav-item" data-tooltip="Mock Tests (M)" onclick="navigateTo('mocks')">
+                    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                </button>
+                <button class="nav-item" data-tooltip="Error Log (E)" onclick="navigateTo('errors')">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </button>
+                <button class="nav-item" data-tooltip="Metrics" onclick="navigateTo('metrics')">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                </button>
+                <button class="nav-item" data-tooltip="Calendar" onclick="navigateTo('calendar')">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                </button>
+            </div>
+        </div>
+        <div class="nav-group">
+            <button class="nav-item" data-tooltip="Settings" onclick="navigateTo('settings')">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main id="main-wrapper">
+        <div id="content-area"></div>
+    </main>
+
+    <!-- MODAL CONTAINER -->
+    <div id="app-modal" class="modal-overlay" onclick="closeModalOnBg(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title-text">Modal Title</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body-content"></div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <script>
+        // ==========================================
+        // CONSTANTS & 180-DAY GAOKAO SCHEDULE MAP
+        // ==========================================
+        const GATE_DATE = new Date('2027-02-07T00:00:00');
+        const PROGRAM_START = '2026-08-15';
+        const PROGRAM_END = '2027-02-05';
+
+        const SCHEDULE_MAP = {
+            // PHASE 1: LEARNING (Aug 15 - Sep 30, 2026)
+            "2026-08-15": { week: 1, phase: 1, type: "study", morning: "Linear Algebra: Matrices, determinants, system of linear equations", afternoon: "Discrete Math: Propositional logic, truth tables, logical equivalences" },
+            "2026-08-16": { week: 1, phase: 1, type: "study", morning: "Linear Algebra: Eigenvalues, eigenvectors, LU decomposition", afternoon: "Discrete Math: First-order logic, quantifiers, normal forms" },
+            "2026-08-17": { week: 1, phase: 1, type: "study", morning: "Linear Algebra: PYQs (2005-2015)", afternoon: "Discrete Math: Sets, relations, functions, properties of relations" },
+            "2026-08-18": { week: 1, phase: 1, type: "study", morning: "Calculus: Limits, continuity, differentiability", afternoon: "Discrete Math: Partial orders, lattices, Hasse diagrams" },
+            "2026-08-19": { week: 1, phase: 1, type: "study", morning: "Calculus: Maxima/minima, Mean value theorem, Taylor series", afternoon: "Discrete Math: Monoids, Groups, semigroups" },
+            "2026-08-20": { week: 1, phase: 1, type: "study", morning: "Calculus: Integration (definite, indefinite, applications)", afternoon: "Discrete Math: Graph theory basics — walks, paths, cycles" },
+            "2026-08-21": { week: 1, phase: 1, type: "study", morning: "Calculus: PYQs (2005-2015)", afternoon: "Discrete Math: Graph connectivity, Euler & Hamiltonian paths" },
+
+            "2026-08-22": { week: 2, phase: 1, type: "study", morning: "Probability: Random variables, PMF, PDF, CDF", afternoon: "Discrete Math: Matching in graphs, graph coloring" },
+            "2026-08-23": { week: 2, phase: 1, type: "study", morning: "Probability: Uniform, Binomial, Poisson distributions", afternoon: "Discrete Math: Combinatorics — permutations, combinations, pigeonhole" },
+            "2026-08-24": { week: 2, phase: 1, type: "study", morning: "Probability: Normal, Exponential distributions", afternoon: "Discrete Math: Recurrence relations — master theorem" },
+            "2026-08-25": { week: 2, phase: 1, type: "study", morning: "Probability: Mean, median, mode, variance, standard deviation", afternoon: "Discrete Math: Generating functions basics" },
+            "2026-08-26": { week: 2, phase: 1, type: "study", morning: "Probability: Conditional probability, Bayes theorem, total probability", afternoon: "Discrete Math: PYQs 2005-2015" },
+            "2026-08-27": { week: 2, phase: 1, type: "revision", morning: "Engineering Math FULL REVISION + Formula sheet creation", afternoon: "Discrete Math FULL REVISION + Formula sheet creation" },
+            "2026-08-28": { week: 2, phase: 1, type: "subject_test", morning: "SUBJECT TEST 1: Engineering Math + Discrete Math (2 hours)", afternoon: "Error analysis + Weak area targeting", milestone: "📝 Subject Test 1" },
+
+            "2026-08-29": { week: 3, phase: 1, type: "study", morning: "DSA: Arrays, Stacks, Queues — implementation & applications", afternoon: "Algorithms: Asymptotic notation — Big-O, Omega, Theta" },
+            "2026-08-30": { week: 3, phase: 1, type: "study", morning: "DSA: Linked Lists — singly, doubly, circular, operations", afternoon: "Algorithms: Recurrence relations — substitution, recursion tree, master theorem" },
+            "2026-08-31": { week: 3, phase: 1, type: "study", morning: "DSA: Trees — Binary tree, BST, traversals (in/pre/post/level)", afternoon: "Algorithms: Divide & Conquer — merge sort, quick sort, binary search" },
+            "2026-09-01": { week: 3, phase: 1, type: "study", morning: "DSA: Heaps — max heap, min heap, heapify, heap sort", afternoon: "Algorithms: Greedy — activity selection, fractional knapsack, Huffman coding" },
+            "2026-09-02": { week: 3, phase: 1, type: "study", morning: "DSA: Hashing — chaining, open addressing, double hashing", afternoon: "Algorithms: Dynamic Programming — 0/1 knapsack, LCS, matrix chain multiplication" },
+            "2026-09-03": { week: 3, phase: 1, type: "study", morning: "DSA: Graphs — representation, BFS, DFS", afternoon: "Algorithms: DP — Floyd-Warshall, longest increasing subsequence" },
+            "2026-09-04": { week: 3, phase: 1, type: "study", morning: "DSA: Graphs — topological sort, strongly connected components", afternoon: "Algorithms: Dijkstra, Bellman-Ford, Prim, Kruskal" },
+
+            "2026-09-05": { week: 4, phase: 1, type: "study", morning: "DSA: AVL Trees — rotations, insertions, deletions", afternoon: "Algorithms: Backtracking — N-Queens, subset sum" },
+            "2026-09-06": { week: 4, phase: 1, type: "study", morning: "DSA: B-Trees, B+ Trees basics", afternoon: "Algorithms: String matching — KMP, Rabin-Karp" },
+            "2026-09-07": { week: 4, phase: 1, type: "study", morning: "DSA: Tries, segment trees basics", afternoon: "Algorithms: NP-completeness — P, NP, NP-hard, NP-complete" },
+            "2026-09-08": { week: 4, phase: 1, type: "pyq_marathon", morning: "DSA: PYQs (2010-2020)", afternoon: "Algorithms: PYQs (2010-2020)" },
+            "2026-09-09": { week: 4, phase: 1, type: "study", morning: "DSA: Advanced GATE-level problems", afternoon: "Algorithms: Advanced GATE-level problems" },
+            "2026-09-10": { week: 4, phase: 1, type: "revision", morning: "DSA + Algorithms: FULL REVISION + Short notes", afternoon: "DSA + Algorithms: FULL REVISION + Short notes" },
+            "2026-09-11": { week: 4, phase: 1, type: "subject_test", morning: "SUBJECT TEST 2: DSA + Algorithms (2 hours)", afternoon: "Error analysis + Weak area targeting", milestone: "📝 Subject Test 2" },
+
+            "2026-09-12": { week: 5, phase: 1, type: "study", morning: "OS: Processes vs threads, PCB, context switching", afternoon: "Networks: OSI vs TCP/IP model, switching types" },
+            "2026-09-13": { week: 5, phase: 1, type: "study", morning: "OS: CPU scheduling — FCFS, SJF, SRTF, RR, priority, multilevel", afternoon: "Networks: Performance metrics — bandwidth, throughput, delay" },
+            "2026-09-14": { week: 5, phase: 1, type: "study", morning: "OS: Synchronization — semaphores, mutex, monitors, classical problems", afternoon: "Networks: Data link — framing, error detection (parity, CRC, checksum)" },
+            "2026-09-15": { week: 5, phase: 1, type: "study", morning: "OS: Deadlock — conditions, prevention, avoidance (Banker), detection", afternoon: "Networks: MAC protocols — ALOHA, CSMA/CD, CSMA/CA, token passing" },
+            "2026-09-16": { week: 5, phase: 1, type: "study", morning: "OS: Memory management — paging, segmentation, page tables", afternoon: "Networks: Ethernet, VLANs, ARP protocol" },
+            "2026-09-17": { week: 5, phase: 1, type: "study", morning: "OS: Virtual memory — demand paging, page replacement algorithms", afternoon: "Networks: IP addressing — IPv4, subnetting, CIDR, NAT" },
+            "2026-09-18": { week: 5, phase: 1, type: "study", morning: "OS: File systems — allocation methods, directory structure, inode", afternoon: "Networks: Routing — distance vector (RIP), link state (OSPF), BGP" },
+
+            "2026-09-19": { week: 6, phase: 1, type: "study", morning: "OS: Disk scheduling — FCFS, SSTF, SCAN, C-SCAN, LOOK", afternoon: "Networks: Transport layer — TCP, UDP, connection management" },
+            "2026-09-20": { week: 6, phase: 1, type: "study", morning: "OS: I/O systems, DMA, interrupts, buffer cache", afternoon: "Networks: TCP — flow control (sliding window), congestion control" },
+            "2026-09-21": { week: 6, phase: 1, type: "pyq_marathon", morning: "OS: PYQs (2010-2020)", afternoon: "Networks: Application layer — DNS, HTTP, FTP, SMTP" },
+            "2026-09-22": { week: 6, phase: 1, type: "study", morning: "OS: Advanced GATE-level problems", afternoon: "Networks: Application layer — DHCP, SNMP, P2P, socket programming" },
+            "2026-09-23": { week: 6, phase: 1, type: "revision", morning: "OS: FULL REVISION + Short notes", afternoon: "Networks: FULL REVISION + Short notes" },
+            "2026-09-24": { week: 6, phase: 1, type: "revision", morning: "OS + Networks: Mixed problem solving", afternoon: "Mixed problem solving" },
+            "2026-09-25": { week: 6, phase: 1, type: "subject_test", morning: "SUBJECT TEST 3: OS + Networks (2 hours)", afternoon: "Error analysis + Weak area targeting", milestone: "📝 Subject Test 3" },
+
+            "2026-09-26": { week: 7, phase: 1, type: "study", morning: "DBMS: ER model — entities, attributes, relationships, constraints", afternoon: "Compiler Design: Lexical analysis — tokens, patterns, finite automata" },
+            "2026-09-27": { week: 7, phase: 1, type: "study", morning: "DBMS: Relational model — relational algebra (select, project, join, division)", afternoon: "Compiler Design: Parsing — top-down LL(1), bottom-up LR(0), SLR, CLR, LALR" },
+            "2026-09-28": { week: 7, phase: 1, type: "study", morning: "DBMS: SQL — SELECT, JOIN, nested queries, aggregation", afternoon: "Compiler Design: Syntax-directed translation — SDD, SDT, attributes" },
+            "2026-09-29": { week: 7, phase: 1, type: "study", morning: "DBMS: Normalization — 1NF, 2NF, 3NF, BCNF, decomposition", afternoon: "Compiler Design: Intermediate code — 3-address code, quadruples" },
+            "2026-09-30": { week: 7, phase: 1, type: "study", morning: "DBMS: Transactions — ACID, serializability, conflict/view serializability", afternoon: "Compiler Design: Runtime environments — activation records, symbol table" },
+
+            // PHASE 2: PYQ MARATHON (Oct 1 - Nov 15, 2026)
+            "2026-10-01": { week: 8, phase: 2, type: "pyq_marathon", morning: "DSA: PYQs 2000-2005", afternoon: "Algorithms: PYQs 2000-2005" },
+            "2026-10-02": { week: 8, phase: 2, type: "pyq_marathon", morning: "DSA: PYQs 2006-2010", afternoon: "Algorithms: PYQs 2006-2010" },
+            "2026-10-03": { week: 8, phase: 2, type: "pyq_marathon", morning: "DSA: PYQs 2011-2015", afternoon: "Algorithms: PYQs 2011-2015" },
+            "2026-10-04": { week: 8, phase: 2, type: "pyq_marathon", morning: "DSA: PYQs 2016-2020", afternoon: "Algorithms: PYQs 2016-2020" },
+            "2026-10-05": { week: 8, phase: 2, type: "pyq_marathon", morning: "DSA: PYQs 2021-2025", afternoon: "Algorithms: PYQs 2021-2025" },
+            "2026-10-06": { week: 8, phase: 2, type: "pyq_marathon", morning: "DSA: Re-solve all WRONG answers (Pass 2)", afternoon: "Algorithms: Re-solve all WRONG answers (Pass 2)" },
+            "2026-10-07": { week: 8, phase: 2, type: "subject_test", morning: "SUBJECT TEST 4: DSA + Algorithms (2 hours)", afternoon: "Error analysis", milestone: "📝 Subject Test 4" },
+
+            "2026-10-08": { week: 9, phase: 2, type: "pyq_marathon", morning: "OS: PYQs 2000-2008", afternoon: "Networks: PYQs 2000-2008" },
+            "2026-10-09": { week: 9, phase: 2, type: "pyq_marathon", morning: "OS: PYQs 2009-2015", afternoon: "Networks: PYQs 2009-2015" },
+            "2026-10-10": { week: 9, phase: 2, type: "pyq_marathon", morning: "OS: PYQs 2016-2020", afternoon: "Networks: PYQs 2016-2020" },
+            "2026-10-11": { week: 9, phase: 2, type: "pyq_marathon", morning: "OS: PYQs 2021-2025", afternoon: "Networks: PYQs 2021-2025" },
+            "2026-10-12": { week: 9, phase: 2, type: "pyq_marathon", morning: "OS: Re-solve WRONG answers (Pass 2)", afternoon: "Networks: Re-solve WRONG answers (Pass 2)" },
+            "2026-10-13": { week: 9, phase: 2, type: "revision", morning: "OS + Networks: Mixed revision + tricky questions", afternoon: "Mixed revision" },
+            "2026-10-14": { week: 9, phase: 2, type: "subject_test", morning: "SUBJECT TEST 5: OS + Networks (2 hours)", afternoon: "Error analysis", milestone: "📝 Subject Test 5" },
+
+            "2026-10-15": { week: 10, phase: 2, type: "pyq_marathon", morning: "DBMS: PYQs 2000-2010", afternoon: "Engineering Math: PYQs 2000-2010" },
+            "2026-10-16": { week: 10, phase: 2, type: "pyq_marathon", morning: "DBMS: PYQs 2011-2020", afternoon: "Engineering Math: PYQs 2011-2020" },
+            "2026-10-17": { week: 10, phase: 2, type: "pyq_marathon", morning: "DBMS: PYQs 2021-2025", afternoon: "Engineering Math: PYQs 2021-2025" },
+            "2026-10-18": { week: 10, phase: 2, type: "pyq_marathon", morning: "Compiler Design: PYQs 2000-2025 (all years)", afternoon: "Compiler Design: Re-solve WRONG answers" },
+            "2026-10-19": { week: 10, phase: 2, type: "pyq_marathon", morning: "DBMS + Compiler: Re-solve WRONG (Pass 2)", afternoon: "Engineering Math: Re-solve WRONG (Pass 2)" },
+            "2026-10-20": { week: 10, phase: 2, type: "pyq_marathon", morning: "DBMS + Math + Compiler: Mixed tricky questions", afternoon: "Mixed tricky questions" },
+            "2026-10-21": { week: 10, phase: 2, type: "subject_test", morning: "SUBJECT TEST 6: DBMS + Math + Compiler (2 hours)", afternoon: "Error analysis", milestone: "📝 Subject Test 6" },
+
+            "2026-10-22": { week: 11, phase: 2, type: "pyq_marathon", morning: "TOC: PYQs 2000-2010", afternoon: "COA: PYQs 2000-2010" },
+            "2026-10-23": { week: 11, phase: 2, type: "pyq_marathon", morning: "TOC: PYQs 2011-2020", afternoon: "COA: PYQs 2011-2020" },
+            "2026-10-24": { week: 11, phase: 2, type: "pyq_marathon", morning: "TOC: PYQs 2021-2025", afternoon: "COA: PYQs 2021-2025" },
+            "2026-10-25": { week: 11, phase: 2, type: "pyq_marathon", morning: "Digital Logic: PYQs 2000-2025 (all years)", afternoon: "Digital Logic: Re-solve WRONG answers" },
+            "2026-10-26": { week: 11, phase: 2, type: "pyq_marathon", morning: "TOC: Re-solve WRONG (Pass 2)", afternoon: "COA: Re-solve WRONG (Pass 2)" },
+            "2026-10-27": { week: 11, phase: 2, type: "pyq_marathon", morning: "TOC + COA + DL: Mixed tricky questions", afternoon: "Mixed tricky questions" },
+            "2026-10-28": { week: 11, phase: 2, type: "subject_test", morning: "SUBJECT TEST 7: TOC + COA + Digital Logic (2 hours)", afternoon: "Error analysis", milestone: "📝 Subject Test 7" },
+
+            "2026-10-29": { week: 12, phase: 2, type: "study", morning: "GA: Verbal ability — grammar, sentence completion, analogies", afternoon: "GA: PYQs 2010-2018" },
+            "2026-10-30": { week: 12, phase: 2, type: "study", morning: "GA: Numerical ability — number series, percentages, data interpretation", afternoon: "GA: PYQs 2019-2025" },
+            "2026-10-31": { week: 12, phase: 2, type: "study", morning: "GA: Spatial aptitude — mirror images, paper folding, patterns", afternoon: "GA: Re-solve WRONG answers" },
+            "2026-11-01": { week: 12, phase: 2, type: "revision", morning: "FULL REVISION: Engineering Math + Discrete Math", afternoon: "Formula sheet review" },
+            "2026-11-02": { week: 12, phase: 2, type: "revision", morning: "FULL REVISION: DSA + Algorithms", afternoon: "Short notes review" },
+            "2026-11-03": { week: 12, phase: 2, type: "revision", morning: "FULL REVISION: OS + Networks", afternoon: "Short notes review" },
+            "2026-11-04": { week: 12, phase: 2, type: "subject_test", morning: "SUBJECT TEST 8: GA + Mixed subjects (2 hours)", afternoon: "Error analysis", milestone: "📝 Subject Test 8" },
+
+            "2026-11-05": { week: 13, phase: 2, type: "pyq_marathon", morning: "DSA + Algorithms: Re-solve all Permanent Weakness questions", afternoon: "Permanent Weakness list review" },
+            "2026-11-06": { week: 13, phase: 2, type: "pyq_marathon", morning: "OS + Networks: Re-solve all Permanent Weakness questions", afternoon: "Permanent Weakness list review" },
+            "2026-11-07": { week: 13, phase: 2, type: "pyq_marathon", morning: "DBMS + Engineering Math: Re-solve all Permanent Weakness", afternoon: "Permanent Weakness list review" },
+            "2026-11-08": { week: 13, phase: 2, type: "pyq_marathon", morning: "TOC + COA + Digital Logic: Re-solve all Permanent Weakness", afternoon: "Permanent Weakness list review" },
+            "2026-11-09": { week: 13, phase: 2, type: "pyq_marathon", morning: "Compiler Design + GA: Re-solve all Permanent Weakness", afternoon: "Permanent Weakness list review" },
+            "2026-11-10": { week: 13, phase: 2, type: "pyq_marathon", morning: "ALL SUBJECTS: Mixed marathon — 50 questions, 3 hours", afternoon: "Timed practice" },
+            "2026-11-11": { week: 13, phase: 2, type: "subject_test", morning: "SUBJECT TEST 9: Full syllabus mixed (2 hours)", afternoon: "Error analysis", milestone: "📝 Subject Test 9" },
+
+            "2026-11-12": { week: 14, phase: 2, type: "revision", morning: "Weak area targeting — top 3 weakest subjects", afternoon: "Focused problem solving" },
+            "2026-11-13": { week: 14, phase: 2, type: "revision", morning: "Weak area targeting — top 3 weakest subjects", afternoon: "Focused problem solving" },
+            "2026-11-14": { week: 14, phase: 2, type: "revision", morning: "FORMULA SHEET FINALIZATION — 1 page per subject", afternoon: "Memorization drill" },
+            "2026-11-15": { week: 14, phase: 2, type: "subject_test", morning: "SUBJECT TEST 10: Full syllabus (2 hours)", afternoon: "Error analysis + MOCK TEST HELL BEGINS", milestone: "📝 Subject Test 10 | 🔥 Mock Hell Starts" },
+
+            // PHASE 3: MOCK TEST HELL (Nov 16, 2026 - Jan 15, 2027)
+            "2026-11-16": { week: 15, phase: 3, type: "mock", morning: "Light revision of formulas only (6-8:30 AM)", afternoon: "MOCK TEST 1 (9:30 AM - 12:30 PM) + Detailed Analysis (4 hours)", milestone: "🎯 Mock Test 1" },
+            "2026-11-17": { week: 15, phase: 3, type: "study", morning: "Weak area targeting from Mock 1", afternoon: "Subject-specific revision" },
+            "2026-11-18": { week: 15, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 2 + Detailed Analysis", milestone: "🎯 Mock Test 2" },
+            "2026-11-19": { week: 15, phase: 3, type: "study", morning: "Weak area targeting from Mock 2", afternoon: "Subject-specific revision" },
+            "2026-11-20": { week: 15, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 3 + Detailed Analysis", milestone: "🎯 Mock Test 3" },
+            "2026-11-21": { week: 15, phase: 3, type: "study", morning: "Weak area targeting from Mock 3", afternoon: "50 PYQs from weakest subject" },
+            "2026-11-22": { week: 15, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 4 + Detailed Analysis", milestone: "🎯 Mock Test 4" },
+            "2026-11-23": { week: 16, phase: 3, type: "study", morning: "Weak area targeting from Mock 4", afternoon: "Subject-specific revision" },
+            "2026-11-24": { week: 16, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 5 + Detailed Analysis", milestone: "🎯 Mock Test 5" },
+            "2026-11-25": { week: 16, phase: 3, type: "study", morning: "Weak area targeting from Mock 5", afternoon: "Subject-specific revision" },
+            "2026-11-26": { week: 16, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 6 + Detailed Analysis", milestone: "🎯 Mock Test 6" },
+            "2026-11-27": { week: 16, phase: 3, type: "study", morning: "Weak area targeting from Mock 6", afternoon: "50 PYQs from weakest subject" },
+            "2026-11-28": { week: 16, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 7 + Detailed Analysis", milestone: "🎯 Mock Test 7" },
+            "2026-11-29": { week: 16, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 8 + Detailed Analysis", milestone: "🎯 Mock Test 8" },
+            "2026-11-30": { week: 17, phase: 3, type: "study", morning: "Weak area targeting from Mock 8", afternoon: "Subject-specific revision" },
+            "2026-12-01": { week: 17, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 9 + Detailed Analysis", milestone: "🎯 Mock Test 9" },
+            "2026-12-02": { week: 17, phase: 3, type: "study", morning: "Weak area targeting from Mock 9", afternoon: "Subject-specific revision" },
+            "2026-12-03": { week: 17, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 10 + Detailed Analysis", milestone: "🎯 Mock Test 10" },
+            "2026-12-04": { week: 17, phase: 3, type: "study", morning: "Weak area targeting from Mock 10", afternoon: "50 PYQs from weakest subject" },
+            "2026-12-05": { week: 17, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 11 + Detailed Analysis", milestone: "🎯 Mock Test 11" },
+            "2026-12-06": { week: 17, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 12 + Detailed Analysis", milestone: "🎯 Mock Test 12" },
+            "2026-12-07": { week: 18, phase: 3, type: "study", morning: "Weak area targeting from Mock 12", afternoon: "Subject-specific revision" },
+            "2026-12-08": { week: 18, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 13 + Detailed Analysis", milestone: "🎯 Mock Test 13" },
+            "2026-12-09": { week: 18, phase: 3, type: "study", morning: "Weak area targeting from Mock 13", afternoon: "Subject-specific revision" },
+            "2026-12-10": { week: 18, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 14 + Detailed Analysis", milestone: "🎯 Mock Test 14" },
+            "2026-12-11": { week: 18, phase: 3, type: "study", morning: "Weak area targeting from Mock 14", afternoon: "50 PYQs from weakest subject" },
+            "2026-12-12": { week: 18, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 15 + Detailed Analysis", milestone: "🎯 Mock Test 15" },
+            "2026-12-13": { week: 18, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 16 + Detailed Analysis", milestone: "🎯 Mock Test 16" },
+            "2026-12-14": { week: 19, phase: 3, type: "study", morning: "Weak area targeting from Mock 16", afternoon: "Subject-specific revision" },
+            "2026-12-15": { week: 19, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 17 + Detailed Analysis", milestone: "🎯 Mock Test 17" },
+            "2026-12-16": { week: 19, phase: 3, type: "study", morning: "Weak area targeting from Mock 17", afternoon: "Subject-specific revision" },
+            "2026-12-17": { week: 19, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 18 + Detailed Analysis", milestone: "🎯 Mock Test 18" },
+            "2026-12-18": { week: 19, phase: 3, type: "study", morning: "Weak area targeting from Mock 18", afternoon: "50 PYQs from weakest subject" },
+            "2026-12-19": { week: 19, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 19 + Detailed Analysis", milestone: "🎯 Mock Test 19" },
+            "2026-12-20": { week: 19, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 20 + Detailed Analysis", milestone: "🎯 Mock Test 20" },
+            "2026-12-21": { week: 20, phase: 3, type: "study", morning: "Weak area targeting from Mock 20", afternoon: "Subject-specific revision" },
+            "2026-12-22": { week: 20, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 21 + Detailed Analysis", milestone: "🎯 Mock Test 21" },
+            "2026-12-23": { week: 20, phase: 3, type: "study", morning: "Weak area targeting from Mock 21", afternoon: "Subject-specific revision" },
+            "2026-12-24": { week: 20, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 22 + Detailed Analysis", milestone: "🎯 Mock Test 22" },
+            "2026-12-25": { week: 20, phase: 3, type: "study", morning: "Weak area targeting from Mock 22", afternoon: "50 PYQs from weakest subject" },
+            "2026-12-26": { week: 20, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 23 + Detailed Analysis", milestone: "🎯 Mock Test 23" },
+            "2026-12-27": { week: 20, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 24 + Detailed Analysis", milestone: "🎯 Mock Test 24" },
+            "2026-12-28": { week: 21, phase: 3, type: "study", morning: "Weak area targeting from Mock 24", afternoon: "Subject-specific revision" },
+            "2026-12-29": { week: 21, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 25 + Detailed Analysis", milestone: "🎯 Mock Test 25" },
+            "2026-12-30": { week: 21, phase: 3, type: "study", morning: "Weak area targeting from Mock 25", afternoon: "Subject-specific revision" },
+            "2026-12-31": { week: 21, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 26 + Detailed Analysis", milestone: "🎯 Mock Test 26" },
+            "2027-01-01": { week: 21, phase: 3, type: "study", morning: "Weak area targeting from Mock 26", afternoon: "50 PYQs from weakest subject" },
+            "2027-01-02": { week: 21, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 27 + Detailed Analysis", milestone: "🎯 Mock Test 27" },
+            "2027-01-03": { week: 21, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 28 + Detailed Analysis", milestone: "🎯 Mock Test 28" },
+            "2027-01-04": { week: 22, phase: 3, type: "study", morning: "Weak area targeting from Mock 28", afternoon: "Subject-specific revision" },
+            "2027-01-05": { week: 22, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 29 + Detailed Analysis", milestone: "🎯 Mock Test 29" },
+            "2027-01-06": { week: 22, phase: 3, type: "study", morning: "Weak area targeting from Mock 29", afternoon: "Subject-specific revision" },
+            "2027-01-07": { week: 22, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 30 + Detailed Analysis", milestone: "🎯 Mock Test 30" },
+            "2027-01-08": { week: 22, phase: 3, type: "study", morning: "Weak area targeting from Mock 30", afternoon: "50 PYQs from weakest subject" },
+            "2027-01-09": { week: 22, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 31 + Detailed Analysis", milestone: "🎯 Mock Test 31" },
+            "2027-01-10": { week: 22, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 32 + Detailed Analysis", milestone: "🎯 Mock Test 32" },
+            "2027-01-11": { week: 23, phase: 3, type: "study", morning: "Weak area targeting from Mock 32", afternoon: "Subject-specific revision" },
+            "2027-01-12": { week: 23, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 33 + Detailed Analysis", milestone: "🎯 Mock Test 33" },
+            "2027-01-13": { week: 23, phase: 3, type: "study", morning: "Weak area targeting from Mock 33", afternoon: "Subject-specific revision" },
+            "2027-01-14": { week: 23, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 34 + Detailed Analysis", milestone: "🎯 Mock Test 34" },
+            "2027-01-15": { week: 23, phase: 3, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 35 + Detailed Analysis — PHASE 3 ENDS", milestone: "🎯 Mock Test 35 | Phase 3 Complete" },
+
+            // PHASE 4: FINAL SPRINT (Jan 16 - Feb 5, 2027)
+            "2027-01-16": { week: 24, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 36 + Analysis", milestone: "🎯 Mock Test 36" },
+            "2027-01-17": { week: 24, phase: 4, type: "revision", morning: "Revision: Engineering Math + Discrete + Permanent Weakness", afternoon: "No new content" },
+            "2027-01-18": { week: 24, phase: 4, type: "revision", morning: "Revision: DSA + Algorithms + Permanent Weakness", afternoon: "No new content" },
+            "2027-01-19": { week: 24, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 37 + Analysis", milestone: "🎯 Mock Test 37" },
+            "2027-01-20": { week: 24, phase: 4, type: "revision", morning: "Revision: OS + Networks + Permanent Weakness", afternoon: "No new content" },
+            "2027-01-21": { week: 24, phase: 4, type: "revision", morning: "Revision: DBMS + Compiler + Permanent Weakness", afternoon: "No new content" },
+            "2027-01-22": { week: 24, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 38 + Analysis", milestone: "🎯 Mock Test 38" },
+            "2027-01-23": { week: 25, phase: 4, type: "revision", morning: "Revision: TOC + COA + Digital Logic + Permanent Weakness", afternoon: "No new content" },
+            "2027-01-24": { week: 25, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 39 + Analysis", milestone: "🎯 Mock Test 39" },
+            "2027-01-25": { week: 25, phase: 4, type: "revision", morning: "Revision: GA + all formula sheets + Memorization drill", afternoon: "No new content" },
+            "2027-01-26": { week: 25, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 40 + Analysis", milestone: "🎯 Mock Test 40" },
+            "2027-01-27": { week: 25, phase: 4, type: "revision", morning: "Light revision: Only marked questions from last 5 mocks", afternoon: "No new content" },
+            "2027-01-28": { week: 25, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 41 + Analysis", milestone: "🎯 Mock Test 41" },
+            "2027-01-29": { week: 25, phase: 4, type: "revision", morning: "Light revision: Only marked questions from last 5 mocks", afternoon: "No new content" },
+            "2027-01-30": { week: 26, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 42 — Light analysis only", milestone: "🎯 Mock Test 42" },
+            "2027-01-31": { week: 26, phase: 4, type: "revision", morning: "Revision: 1-page formula sheets for ALL subjects", afternoon: "Read-only, no solving" },
+            "2027-02-01": { week: 26, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 43 — Light analysis only", milestone: "🎯 Mock Test 43" },
+            "2027-02-02": { week: 26, phase: 4, type: "revision", morning: "Revision: Permanent Weakness list — final pass", afternoon: "Read + mental walkthrough only" },
+            "2027-02-03": { week: 26, phase: 4, type: "mock", morning: "Light revision of formulas only", afternoon: "MOCK TEST 44 (FINAL FULL MOCK) — Light analysis", milestone: "🎯 Mock Test 44 — FINAL" },
+            "2027-02-04": { week: 26, phase: 4, type: "final", morning: "FINAL REVISION: GA + formulas + marked easy questions", afternoon: "Sleep by 10 PM" },
+            "2027-02-05": { week: 26, phase: 4, type: "final", morning: "FINAL REVISION: 2 hours only. Then REST.", afternoon: "Sleep by 9 PM. EXAM TOMORROW.", milestone: "🏆 GATE EXAM — GO DESTROY IT!" }
+        };
+
+        const DEFAULT_SUBJECTS = [
+            { id: 'em', name: 'Engineering Mathematics', weight: 13, topics: [{ name: 'Linear Algebra (Matrices, System of Eqs, Eigenvalues)', done: false }, { name: 'Calculus (Limits, Mean Value, Integration)', done: false }, { name: 'Probability & Statistics (Variables, Distributions, Bayes)', done: false }] },
+            { id: 'dm', name: 'Discrete Mathematics', weight: 10, topics: [{ name: 'Propositional & First-Order Logic', done: false }, { name: 'Sets, Relations & Functions', done: false }, { name: 'Groups, Lattices & Partial Orders', done: false }, { name: 'Combinatorics & Recurrence Relations', done: false }, { name: 'Graph Theory (Paths, Connectivity, Coloring)', done: false }] },
+            { id: 'dsa', name: 'Data Structures', weight: 10, topics: [{ name: 'Arrays, Stacks & Queues', done: false }, { name: 'Linked Lists (Singly, Doubly, Circular)', done: false }, { name: 'Trees & Traversals (BST, AVL, B-Trees)', done: false }, { name: 'Heaps & Hash Tables', done: false }] },
+            { id: 'algo', name: 'Algorithms', weight: 8, topics: [{ name: 'Asymptotic Analysis & Recurrences', done: false }, { name: 'Divide & Conquer (Sorting & Searching)', done: false }, { name: 'Greedy Algorithms', done: false }, { name: 'Dynamic Programming (0/1 Knapsack, LCS)', done: false }, { name: 'Graph Algorithms (BFS, DFS, Shortest Path, MST)', done: false }, { name: 'NP-Completeness (P, NP, NP-Hard)', done: false }] },
+            { id: 'os', name: 'Operating Systems', weight: 10, topics: [{ name: 'Processes & Threads (PCB, Context Switch)', done: false }, { name: 'CPU Scheduling Algorithms', done: false }, { name: 'Process Synchronization (Semaphores, Mutex)', done: false }, { name: 'Deadlocks (Prevention, Avoidance - Banker)', done: false }, { name: 'Memory Management (Paging, Segmentation)', done: false }, { name: 'Virtual Memory & Page Replacement', done: false }, { name: 'File Systems & Disk Scheduling', done: false }] },
+            { id: 'cn', name: 'Computer Networks', weight: 9, topics: [{ name: 'OSI & TCP/IP Reference Models', done: false }, { name: 'Data Link Layer (Framing, Parity, CRC)', done: false }, { name: 'MAC Protocols (ALOHA, CSMA/CD, CSMA/CA)', done: false }, { name: 'IP Addressing, Subnetting & CIDR', done: false }, { name: 'Routing Protocols (RIP, OSPF, BGP)', done: false }, { name: 'Transport Layer (TCP, UDP, Sliding Window)', done: false }, { name: 'Application Layer (DNS, HTTP, FTP, SMTP)', done: false }] },
+            { id: 'dbms', name: 'Database Management Systems', weight: 8, topics: [{ name: 'ER Model & Relational Model', done: false }, { name: 'Relational Algebra & Tuple Calculus', done: false }, { name: 'SQL Queries, Joins & Aggregation', done: false }, { name: 'Normalization (1NF, 2NF, 3NF, BCNF)', done: false }, { name: 'Transactions, ACID & Concurrency Control', done: false }] },
+            { id: 'toc', name: 'Theory of Computation', weight: 8, topics: [{ name: 'Regular Languages & Finite Automata (DFA/NFA)', done: false }, { name: 'Context-Free Languages & Pushdown Automata', done: false }, { name: 'Turing Machines & Decidability', done: false }] },
+            { id: 'cd', name: 'Compiler Design', weight: 4, topics: [{ name: 'Lexical Analysis & Tokens', done: false }, { name: 'Parsing (LL(1), LR(0), SLR, CLR, LALR)', done: false }, { name: 'Syntax-Directed Translation (SDD/SDT)', done: false }, { name: 'Intermediate Code Generation & Code Opt', done: false }] },
+            { id: 'coa', name: 'Computer Organization & Arch', weight: 8, topics: [{ name: 'Machine Instructions & Addressing Modes', done: false }, { name: 'ALU, Data Path & Control Unit', done: false }, { name: 'Instruction Pipelining & Hazards', done: false }, { name: 'Memory Hierarchy & Cache Memory', done: false }] },
+            { id: 'dl', name: 'Digital Logic', weight: 5, topics: [{ name: 'Boolean Algebra & K-Map Minimization', done: false }, { name: 'Combinational Circuits (Mux, Decoder, Adders)', done: false }, { name: 'Sequential Circuits (Flip-Flops, Counters)', done: false }, { name: 'Number Systems & Fixed/Floating Point', done: false }] },
+            { id: 'ga', name: 'General Aptitude', weight: 15, topics: [{ name: 'Verbal Ability & Vocabulary', done: false }, { name: 'Numerical Ability & Quantitative Aptitude', done: false }, { name: 'Spatial Aptitude & Pattern Recognition', done: false }, { name: 'Analytical & Logical Reasoning', done: false }] }
+        ];
+
+        // ==========================================
+        // LOCAL STORAGE STATE MANAGEMENT
+        // ==========================================
+        let db = {
+            logs: JSON.parse(localStorage.getItem('g27_daily_logs')) || {},
+            subjects: JSON.parse(localStorage.getItem('g27_subjects')) || DEFAULT_SUBJECTS,
+            pyqs: JSON.parse(localStorage.getItem('g27_pyqs')) || [],
+            mocks: JSON.parse(localStorage.getItem('g27_mocks')) || [],
+            errors: JSON.parse(localStorage.getItem('g27_errors')) || [],
+            settings: JSON.parse(localStorage.getItem('g27_settings')) || {
+                targetRank: 50,
+                targetMarks: 80,
+                dailyHoursGoal: 8,
+                pomoTime: 25,
+                userName: 'GATE Warrior'
+            }
+        };
+
+        function saveDB() {
+            localStorage.setItem('g27_daily_logs', JSON.stringify(db.logs));
+            localStorage.setItem('g27_subjects', JSON.stringify(db.subjects));
+            localStorage.setItem('g27_pyqs', JSON.stringify(db.pyqs));
+            localStorage.setItem('g27_mocks', JSON.stringify(db.mocks));
+            localStorage.setItem('g27_errors', JSON.stringify(db.errors));
+            localStorage.setItem('g27_settings', JSON.stringify(db.settings));
+        }
+
+        // ==========================================
+        // UTILITIES
+        // ==========================================
+        function getTodayStr() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDate(dateStr) {
+            if(!dateStr) return '';
+            const parts = dateStr.split('-');
+            if(parts.length !== 3) return dateStr;
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${parseInt(parts[2])} ${months[parseInt(parts[1])-1]} ${parts[0]}`;
+        }
+
+        function toast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = 'toast';
+            if(type === 'success') el.style.borderLeftColor = 'var(--success)';
+            if(type === 'warning') el.style.borderLeftColor = 'var(--warning)';
+            if(type === 'danger') el.style.borderLeftColor = 'var(--danger)';
+            el.innerHTML = `<span>${msg}</span>`;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(100%)';
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+
+        // ==========================================
+        // ROUTING & NAVIGATION
+        // ==========================================
+        let currentRoute = 'dashboard';
+
+        function navigateTo(route) {
+            currentRoute = route;
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.querySelector(`.nav-item[onclick="navigateTo('${route}')"]`);
+            if(activeBtn) activeBtn.classList.add('active');
+
+            const area = document.getElementById('content-area');
+            area.innerHTML = '';
+            
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'page active';
+            area.appendChild(pageContainer);
+
+            switch(route) {
+                case 'dashboard': renderDashboard(pageContainer); break;
+                case 'subjects': renderSubjects(pageContainer); break;
+                case 'pyq': renderPYQ(pageContainer); break;
+                case 'mocks': renderMocks(pageContainer); break;
+                case 'errors': renderErrors(pageContainer); break;
+                case 'metrics': renderMetrics(pageContainer); break;
+                case 'calendar': renderCalendar(pageContainer); break;
+                case 'settings': renderSettings(pageContainer); break;
+                default: renderDashboard(pageContainer);
+            }
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            const activeEl = document.activeElement;
+            if(activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+                return;
+            }
+            const key = e.key.toLowerCase();
+            if(key === 'd') navigateTo('dashboard');
+            if(key === 's') navigateTo('subjects');
+            if(key === 'p') navigateTo('pyq');
+            if(key === 'm') navigateTo('mocks');
+            if(key === 'e') navigateTo('errors');
+        });
+
+        // ==========================================
+        // 1. DASHBOARD SECTION
+        // ==========================================
+        function renderDashboard(container) {
+            const todayStr = getTodayStr();
+            const todaySchedule = SCHEDULE_MAP[todayStr] || {
+                week: 1, phase: 1, type: "study",
+                morning: "Linear Algebra & Propositional Logic Review",
+                afternoon: "Problem Solving & Formula Memorization"
+            };
+
+            const log = db.logs[todayStr] || { blocks: { m1: 'pending', m2: 'pending', a1: 'pending', a2: 'pending' }, notes: '' };
+
+            // Calculate overall subject completion %
+            let totalTopics = 0, completedTopics = 0;
+            db.subjects.forEach(s => {
+                s.topics.forEach(t => {
+                    totalTopics++;
+                    if(t.done) completedTopics++;
+                });
+            });
+            const syllabusPercent = totalTopics ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+            container.innerHTML = `
+                <div class="header-bar">
+                    <div>
+                        <h1 class="page-title">
+                            GATE CSE 2027 <span class="gradient-text">Gaokao Protocol</span>
+                        </h1>
+                        <p class="page-subtitle">Target: AIR <${db.settings.targetRank} | Daily Goal: ${db.settings.dailyHoursGoal} Hours | Strict Offline Execution</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <span class="badge badge-indigo">Phase ${todaySchedule.phase}</span>
+                        <span class="badge badge-purple">Week ${todaySchedule.week}</span>
+                        <span class="badge badge-amber">${todaySchedule.type.toUpperCase()}</span>
+                    </div>
+                </div>
+
+                <!-- HERO COUNTDOWN CARD -->
+                <div class="countdown-hero">
+                    <div>
+                        <div style="font-size:12px; font-weight:700; color:#818cf8; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Target GATE Exam Date</div>
+                        <div style="font-size:24px; font-weight:800; color:white;">Sunday, February 7, 2027</div>
+                        <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">Execution Window: 180 Days Gaokao Discipline</div>
+                    </div>
+                    <div class="timer-units" id="countdown-timer-display">
+                        <div class="timer-unit"><div class="timer-num" id="cd-days">000</div><div class="timer-label">Days</div></div>
+                        <div class="timer-unit"><div class="timer-num" id="cd-hours">00</div><div class="timer-label">Hours</div></div>
+                        <div class="timer-unit"><div class="timer-num" id="cd-mins">00</div><div class="timer-label">Mins</div></div>
+                        <div class="timer-unit"><div class="timer-num" id="cd-secs">00</div><div class="timer-label">Secs</div></div>
+                    </div>
+                </div>
+
+                <!-- MAIN DASHBOARD GRID -->
+                <div class="grid-2-1">
+                    <div>
+                        <!-- TODAY'S PROTOCOL SCHEDULE CARD -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    Today's Execution Protocol (${todayStr})
+                                </div>
+                                ${todaySchedule.milestone ? `<span class="badge badge-amber">${todaySchedule.milestone}</span>` : ''}
+                            </div>
+
+                            <div style="margin-bottom: 20px;">
+                                <div class="block-card">
+                                    <div class="block-info">
+                                        <div class="block-title">🌅 Morning Session (08:30 AM - 12:30 PM)</div>
+                                        <div class="block-desc">${todaySchedule.morning}</div>
+                                    </div>
+                                    <div class="status-toggle">
+                                        ${renderStatusBtn(todayStr, 'm1', log.blocks.m1 || 'pending', 'B1')}
+                                        ${renderStatusBtn(todayStr, 'm2', log.blocks.m2 || 'pending', 'B2')}
+                                    </div>
+                                </div>
+
+                                <div class="block-card">
+                                    <div class="block-info">
+                                        <div class="block-title">🌆 Afternoon Session (02:00 PM - 06:00 PM)</div>
+                                        <div class="block-desc">${todaySchedule.afternoon}</div>
+                                    </div>
+                                    <div class="status-toggle">
+                                        ${renderStatusBtn(todayStr, 'a1', log.blocks.a1 || 'pending', 'B3')}
+                                        ${renderStatusBtn(todayStr, 'a2', log.blocks.a2 || 'pending', 'B4')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Daily Retrospective & Execution Log</label>
+                                <textarea id="today-notes-input" rows="3" placeholder="Log mistakes made today, key formulas learned, or blockers faced..." onchange="saveTodayNotes(this.value)">${log.notes || ''}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- QUICK METRICS GRID -->
+                        <div class="grid-3">
+                            <div class="card ring-container" style="margin-bottom:0;">
+                                <div class="svg-ring-wrap">
+                                    <svg>
+                                        <circle class="svg-ring-bg" cx="42" cy="42" r="38"></circle>
+                                        <circle class="svg-ring-val" id="syllabus-ring-circle" cx="42" cy="42" r="38"></circle>
+                                    </svg>
+                                    <div class="ring-text">${syllabusPercent}%</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:12px; color:var(--text-muted); font-weight:600;">SYLLABUS</div>
+                                    <div style="font-size:16px; font-weight:800; color:white;">Completion</div>
+                                </div>
+                            </div>
+
+                            <div class="card ring-container" style="margin-bottom:0;">
+                                <div class="svg-ring-wrap">
+                                    <svg>
+                                        <circle class="svg-ring-bg" cx="42" cy="42" r="38"></circle>
+                                        <circle class="svg-ring-val" id="pyq-ring-circle" cx="42" cy="42" r="38"></circle>
+                                    </svg>
+                                    <div class="ring-text" id="pyq-percent-display">0%</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:12px; color:var(--text-muted); font-weight:600;">PYQs</div>
+                                    <div style="font-size:16px; font-weight:800; color:white;">${db.pyqs.length} Solved</div>
+                                </div>
+                            </div>
+
+                            <div class="card ring-container" style="margin-bottom:0;">
+                                <div class="svg-ring-wrap">
+                                    <svg>
+                                        <circle class="svg-ring-bg" cx="42" cy="42" r="38"></circle>
+                                        <circle class="svg-ring-val" id="mock-ring-circle" cx="42" cy="42" r="38"></circle>
+                                    </svg>
+                                    <div class="ring-text">${db.mocks.length}/44</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:12px; color:var(--text-muted); font-weight:600;">MOCKS</div>
+                                    <div style="font-size:16px; font-weight:800; color:white;">Executed</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: POMODORO & QUICK ACTIONS -->
+                    <div>
+                        <!-- POMODORO TIMER CARD -->
+                        <div class="card pomo-card">
+                            <div class="card-title" style="justify-content:center;">⏱️ Gaokao Deep Work Timer</div>
+                            <div class="pomo-time" id="pomo-display">25:00</div>
+                            <div class="pomo-controls">
+                                <button class="btn btn-primary btn-sm" id="pomo-start-btn" onclick="togglePomodoro()">Start Focus</button>
+                                <button class="btn btn-secondary btn-sm" onclick="resetPomodoro(25)">25m</button>
+                                <button class="btn btn-secondary btn-sm" onclick="resetPomodoro(5)">5m Break</button>
+                            </div>
+                        </div>
+
+                        <!-- QUICK ACTIONS CARD -->
+                        <div class="card">
+                            <div class="card-title" style="margin-bottom:14px;">⚡ Quick Warfare Actions</div>
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                <button class="btn btn-secondary" style="justify-content:flex-start;" onclick="openLogMockModal()">
+                                    <span style="font-size:16px;">🎯</span> Log Mock Test Results
+                                </button>
+                                <button class="btn btn-secondary" style="justify-content:flex-start;" onclick="openLogPYQModal()">
+                                    <span style="font-size:16px;">📝</span> Log PYQ Practice Session
+                                </button>
+                                <button class="btn btn-secondary" style="justify-content:flex-start;" onclick="openLogErrorModal()">
+                                    <span style="font-size:16px;">⚠️</span> Record Mistake in Error Log
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            startCountdownTimer();
+            setTimeout(() => {
+                updateProgressRing('syllabus-ring-circle', syllabusPercent);
+                const pyqPct = Math.min(100, Math.round((db.pyqs.length / 1000) * 100));
+                updateProgressRing('pyq-ring-circle', pyqPct);
+                document.getElementById('pyq-percent-display').innerText = pyqPct + '%';
+                const mockPct = Math.min(100, Math.round((db.mocks.length / 44) * 100));
+                updateProgressRing('mock-ring-circle', mockPct);
+            }, 100);
+        }
+
+        function renderStatusBtn(dateStr, blockKey, currentStatus, label) {
+            const statuses = ['pending', 'done', 'partial', 'skipped'];
+            return `
+                <button class="status-btn ${currentStatus} active" onclick="cycleBlockStatus('${dateStr}', '${blockKey}')">
+                    ${label}: ${currentStatus.toUpperCase()}
+                </button>
+            `;
+        }
+
+        window.cycleBlockStatus = function(dateStr, blockKey) {
+            if(!db.logs[dateStr]) {
+                db.logs[dateStr] = { blocks: { m1: 'pending', m2: 'pending', a1: 'pending', a2: 'pending' }, notes: '' };
+            }
+            const current = db.logs[dateStr].blocks[blockKey] || 'pending';
+            const order = ['pending', 'done', 'partial', 'skipped'];
+            const next = order[(order.indexOf(current) + 1) % order.length];
+            db.logs[dateStr].blocks[blockKey] = next;
+            saveDB();
+            toast(`Block ${blockKey.toUpperCase()} updated to ${next.toUpperCase()}`, 'success');
+            if(currentRoute === 'dashboard') navigateTo('dashboard');
+        };
+
+        window.saveTodayNotes = function(val) {
+            const todayStr = getTodayStr();
+            if(!db.logs[todayStr]) {
+                db.logs[todayStr] = { blocks: { m1: 'pending', m2: 'pending', a1: 'pending', a2: 'pending' }, notes: '' };
+            }
+            db.logs[todayStr].notes = val;
+            saveDB();
+            toast('Daily Retrospective Saved', 'success');
+        };
+
+        function startCountdownTimer() {
+            function update() {
+                const now = new Date();
+                const diff = GATE_DATE - now;
+                if(diff <= 0) return;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const mins = Math.floor((diff / 1000 / 60) % 60);
+                const secs = Math.floor((diff / 1000) % 60);
+
+                const dEl = document.getElementById('cd-days');
+                const hEl = document.getElementById('cd-hours');
+                const mEl = document.getElementById('cd-mins');
+                const sEl = document.getElementById('cd-secs');
+
+                if(dEl) dEl.innerText = String(days).padStart(3, '0');
+                if(hEl) hEl.innerText = String(hours).padStart(2, '0');
+                if(mEl) mEl.innerText = String(mins).padStart(2, '0');
+                if(sEl) sEl.innerText = String(secs).padStart(2, '0');
+            }
+            update();
+            if(window.cdInterval) clearInterval(window.cdInterval);
+            window.cdInterval = setInterval(update, 1000);
+        }
+
+        function updateProgressRing(id, percent) {
+            const circle = document.getElementById(id);
+            if(!circle) return;
+            const radius = circle.r.baseVal.value;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (percent / 100) * circumference;
+            circle.style.strokeDasharray = `${circumference} ${circumference}`;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        // Pomodoro State
+        let pomoInterval = null;
+        let pomoSeconds = 25 * 60;
+        let pomoRunning = false;
+
+        window.togglePomodoro = function() {
+            const btn = document.getElementById('pomo-start-btn');
+            if(pomoRunning) {
+                clearInterval(pomoInterval);
+                pomoRunning = false;
+                if(btn) btn.innerText = 'Resume Focus';
+            } else {
+                pomoRunning = true;
+                if(btn) btn.innerText = 'Pause Timer';
+                pomoInterval = setInterval(() => {
+                    if(pomoSeconds > 0) {
+                        pomoSeconds--;
+                        updatePomoDisplay();
+                    } else {
+                        clearInterval(pomoInterval);
+                        pomoRunning = false;
+                        if(btn) btn.innerText = 'Start Focus';
+                        toast('🔔 Pomodoro Focus Block Completed! Take a rest.', 'success');
+                    }
+                }, 1000);
+            }
+        };
+
+        window.resetPomodoro = function(mins) {
+            clearInterval(pomoInterval);
+            pomoRunning = false;
+            pomoSeconds = mins * 60;
+            updatePomoDisplay();
+            const btn = document.getElementById('pomo-start-btn');
+            if(btn) btn.innerText = 'Start Focus';
+        };
+
+        function updatePomoDisplay() {
+            const display = document.getElementById('pomo-display');
+            if(!display) return;
+            const m = Math.floor(pomoSeconds / 60);
+            const s = pomoSeconds % 60;
+            display.innerText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        // ==========================================
+        // 2. SUBJECTS SECTION
+        // ==========================================
+        function renderSubjects(container) {
+            container.innerHTML = `
+                <div class="header-bar">
+                    <div>
+                        <h1 class="page-title">Syllabus & <span class="gradient-text">Subject Mastery</span></h1>
+                        <p class="page-subtitle">Track completion of all 12 GATE CSE Core Subjects & General Aptitude</p>
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    ${db.subjects.map(s => renderSubjectCard(s)).join('')}
+                </div>
+            `;
+        }
+
+        function renderSubjectCard(sub) {
+            const total = sub.topics.length;
+            const done = sub.topics.filter(t => t.done).length;
+            const pct = total ? Math.round((done / total) * 100) : 0;
+
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${sub.name}</div>
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">GATE Weightage: ~${sub.weight}%</div>
+                        </div>
+                        <span class="badge ${pct === 100 ? 'badge-green' : pct > 0 ? 'badge-indigo' : 'badge-red'}">${pct}%</span>
+                    </div>
+
+                    <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden; margin-bottom:14px;">
+                        <div style="width:${pct}%; height:100%; background:var(--accent-grad); transition:width 0.4s ease;"></div>
+                    </div>
+
+                    <div class="topic-list">
+                        ${sub.topics.map((t, idx) => `
+                            <div class="topic-item" onclick="toggleTopicDone('${sub.id}', ${idx})">
+                                <input type="checkbox" class="topic-checkbox" ${t.done ? 'checked' : ''} onclick="event.stopPropagation(); toggleTopicDone('${sub.id}', ${idx})">
+                                <span class="topic-name ${t.done ? 'completed' : ''}">${t.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        window.toggleTopicDone = function(subId, topicIdx) {
+            const sub = db.subjects.find(s => s.id === subId);
+            if(sub && sub.topics[topicIdx]) {
+                sub.topics[topicIdx].done = !sub.topics[topicIdx].done;
+                saveDB();
+                renderSubjects(document.querySelector('.page.active'));
+            }
+        };
+
+        // ==========================================
+        // 3. PYQ WARFARE SECTION
+        // ==========================================
+        function renderPYQ(container) {
+            const totalSolved = db.pyqs.length;
+            const correctCount = db.pyqs.filter(p => p.correct).length;
+            const accuracy = totalSolved ? Math.round((correctCount / totalSolved) * 100) : 0;
+
+            container.innerHTML = `
+                <div class="header-bar">
+                    <div>
+                        <h1 class="page-title">PYQ Warfare <span class="gradient-text">Repository</span></h1>
+                        <p class="page-subtitle">Solve & Track 2000-2025 Previous Year Questions (Pass 1 & Pass 2)</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openLogPYQModal()">+ Log PYQ Session</button>
+                </div>
+
+                <div class="grid-4" style="margin-bottom:24px;">
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Total PYQs Logged</div>
+                        <div class="stat-pill-value">${totalSolved}</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Accuracy Rate</div>
+                        <div class="stat-pill-value">${accuracy}%</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Pass 2 Needed</div>
+                        <div class="stat-pill-value">${db.pyqs.filter(p => p.status === 'Needs Pass 2').length}</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Mastered Questions</div>
+                        <div class="stat-pill-value">${db.pyqs.filter(p => p.status === 'Mastered').length}</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Subject</th>
+                                    <th>Year</th>
+                                    <th>Questions</th>
+                                    <th>Accuracy</th>
+                                    <th>Status</th>
+                                    <th>Notes</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${db.pyqs.length ? db.pyqs.map((p, i) => `
+                                    <tr>
+                                        <td>${p.date || 'N/A'}</td>
+                                        <td><b>${p.subject}</b></td>
+                                        <td>${p.year}</td>
+                                        <td>${p.correct} / ${p.total} Correct</td>
+                                        <td><span class="badge ${Math.round((p.correct/p.total)*100)>=75 ? 'badge-green':'badge-amber'}">${Math.round((p.correct/p.total)*100)}%</span></td>
+                                        <td><span class="badge ${p.status==='Mastered'?'badge-indigo':'badge-purple'}">${p.status}</span></td>
+                                        <td>${p.notes || '-'}</td>
+                                        <td><button class="btn btn-danger btn-sm" onclick="deletePYQ(${i})">Delete</button></td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px;">No PYQs logged yet. Click "+ Log PYQ Session" to start.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.openLogPYQModal = function() {
+            showModal('Log PYQ Session', `
+                <form onsubmit="savePYQSession(event)">
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select id="pyq-sub-select" required>
+                            ${db.subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>GATE Year Range</label>
+                            <input type="text" id="pyq-year-input" placeholder="e.g. 2015-2020" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Total Questions</label>
+                            <input type="number" id="pyq-total-input" min="1" value="20" required>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Correctly Solved</label>
+                            <input type="number" id="pyq-correct-input" min="0" value="16" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="pyq-status-select">
+                                <option value="Pass 1 Done">Pass 1 Done</option>
+                                <option value="Needs Pass 2">Needs Pass 2 (Weakness)</option>
+                                <option value="Mastered">Mastered</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes / Tricky Questions</label>
+                        <textarea id="pyq-notes-input" rows="2" placeholder="Note question numbers that were tricky..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Save PYQ Entry</button>
+                </form>
+            `);
+        };
+
+        window.savePYQSession = function(e) {
+            e.preventDefault();
+            const pyq = {
+                date: getTodayStr(),
+                subject: document.getElementById('pyq-sub-select').value,
+                year: document.getElementById('pyq-year-input').value,
+                total: parseInt(document.getElementById('pyq-total-input').value),
+                correct: parseInt(document.getElementById('pyq-correct-input').value),
+                status: document.getElementById('pyq-status-select').value,
+                notes: document.getElementById('pyq-notes-input').value
+            };
+            db.pyqs.unshift(pyq);
+            saveDB();
+            closeModal();
+            toast('PYQ Session Logged!', 'success');
+            if(currentRoute === 'pyq') renderPYQ(document.querySelector('.page.active'));
+        };
+
+        window.deletePYQ = function(idx) {
+            db.pyqs.splice(idx, 1);
+            saveDB();
+            renderPYQ(document.querySelector('.page.active'));
+            toast('PYQ Entry Deleted', 'warning');
+        };
+
+        // ==========================================
+        // 4. MOCK TESTS SECTION
+        // ==========================================
+        function renderMocks(container) {
+            const totalMocks = db.mocks.length;
+            const avgScore = totalMocks ? (db.mocks.reduce((a,b) => a + b.score, 0) / totalMocks).toFixed(1) : 0;
+            const maxScore = totalMocks ? Math.max(...db.mocks.map(m => m.score)) : 0;
+
+            container.innerHTML = `
+                <div class="header-bar">
+                    <div>
+                        <h1 class="page-title">Mock Test <span class="gradient-text">Arena</span></h1>
+                        <p class="page-subtitle">44 Full-Length & Subject Mocks — Score Curve & Retrospective Analysis</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openLogMockModal()">+ Log Mock Test</button>
+                </div>
+
+                <div class="grid-4" style="margin-bottom:24px;">
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Mocks Executed</div>
+                        <div class="stat-pill-value">${totalMocks} / 44</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Average Marks</div>
+                        <div class="stat-pill-value">${avgScore}</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Highest Score</div>
+                        <div class="stat-pill-value">${maxScore} / 100</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Target Marks</div>
+                        <div class="stat-pill-value">${db.settings.targetMarks}+</div>
+                    </div>
+                </div>
+
+                <!-- CANVAS LINE CHART FOR MOCK SCORES -->
+                <div class="card">
+                    <div class="card-title" style="margin-bottom:16px;">📈 Mock Performance Score Progression</div>
+                    <div style="height:240px; width:100%; position:relative;">
+                        <canvas id="mock-chart-canvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- MOCKS TABLE -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Mock Name</th>
+                                    <th>Score / 100</th>
+                                    <th>Accuracy</th>
+                                    <th>Rank / Percentile</th>
+                                    <th>Weak Areas Identified</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${db.mocks.length ? db.mocks.map((m, i) => `
+                                    <tr>
+                                        <td>${m.date}</td>
+                                        <td><b>${m.name}</b></td>
+                                        <td><span style="font-size:16px; font-weight:800; color:${m.score>=db.settings.targetMarks?'#34d399':'#818cf8'}">${m.score}</span></td>
+                                        <td>${m.accuracy || 'N/A'}%</td>
+                                        <td>${m.rank || 'N/A'}</td>
+                                        <td>${m.weakness || '-'}</td>
+                                        <td><button class="btn btn-danger btn-sm" onclick="deleteMock(${i})">Delete</button></td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:32px;">No Mocks logged yet. Click "+ Log Mock Test" to record your score.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(drawMockChart, 100);
+        }
+
+        function drawMockChart() {
+            const canvas = document.getElementById('mock-chart-canvas');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(db.mocks.length === 0) {
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '14px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('Log your first mock test to see performance visualization curve.', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            const padding = 40;
+            const w = canvas.width - padding * 2;
+            const h = canvas.height - padding * 2;
+
+            // Draw target line at Target Marks
+            const targetY = padding + h - (db.settings.targetMarks / 100) * h;
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.moveTo(padding, targetY);
+            ctx.lineTo(padding + w, targetY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#eab308';
+            ctx.font = '10px Inter';
+            ctx.fillText(`Target: ${db.settings.targetMarks}`, padding + 5, targetY - 5);
+
+            // Draw Score Line
+            const points = db.mocks.map((m, idx) => {
+                const x = padding + (idx / Math.max(1, db.mocks.length - 1)) * w;
+                const y = padding + h - (m.score / 100) * h;
+                return { x, y, score: m.score, name: m.name };
+            });
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#6366f1';
+            ctx.lineWidth = 3;
+            points.forEach((p, i) => {
+                if(i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.stroke();
+
+            // Draw Point Circles
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.fillStyle = '#8b5cf6';
+                ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Text score
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText(p.score, p.x - 8, p.y - 10);
+            });
+        }
+
+        window.openLogMockModal = function() {
+            showModal('Log Mock Test Execution', `
+                <form onsubmit="saveMockTest(event)">
+                    <div class="form-group">
+                        <label>Mock Test Name / ID</label>
+                        <input type="text" id="mock-name-input" placeholder="e.g. Mock Test 1 (Full Length)" required>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Marks Scored (out of 100)</label>
+                            <input type="number" step="0.33" id="mock-score-input" min="0" max="100" placeholder="68.5" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Accuracy %</label>
+                            <input type="number" id="mock-accuracy-input" min="0" max="100" placeholder="85">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Rank / Percentile</label>
+                            <input type="text" id="mock-rank-input" placeholder="e.g. AIR 142 / 99.2%">
+                        </div>
+                        <div class="form-group">
+                            <label>Primary Weak Area / Subject</label>
+                            <input type="text" id="mock-weakness-input" placeholder="e.g. OS Memory Paging">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Record Mock Result</button>
+                </form>
+            `);
+        };
+
+        window.saveMockTest = function(e) {
+            e.preventDefault();
+            const mock = {
+                date: getTodayStr(),
+                name: document.getElementById('mock-name-input').value,
+                score: parseFloat(document.getElementById('mock-score-input').value),
+                accuracy: document.getElementById('mock-accuracy-input').value,
+                rank: document.getElementById('mock-rank-input').value,
+                weakness: document.getElementById('mock-weakness-input').value
+            };
+            db.mocks.push(mock);
+            saveDB();
+            closeModal();
+            toast('Mock Test Logged Successfully!', 'success');
+            if(currentRoute === 'mocks') renderMocks(document.querySelector('.page.active'));
+        };
+
+        window.deleteMock = function(idx) {
+            db.mocks.splice(idx, 1);
+            saveDB();
+            renderMocks(document.querySelector('.page.active'));
+            toast('Mock Entry Deleted', 'warning');
+        };
+
+        // ==========================================
+        // 5. ERROR LOG SECTION (MISTAKE NOTEBOOK)
+        // ==========================================
+        function renderErrors(container) {
+            container.innerHTML = `
+                <div class="header-bar">
+                    <div>
+                        <h1 class="page-title">Gaokao <span class="gradient-text">Mistake Notebook</span></h1>
+                        <p class="page-subtitle">Error Analysis & Root Cause Elimination (Conceptual, Silly, Formula, Time)</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openLogErrorModal()">+ Record New Mistake</button>
+                </div>
+
+                <div class="card">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Subject</th>
+                                    <th>Topic / Q#</th>
+                                    <th>Error Type</th>
+                                    <th>Root Cause Analysis</th>
+                                    <th>Key Takeaway / Correct Approach</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${db.errors.length ? db.errors.map((err, i) => `
+                                    <tr>
+                                        <td>${err.date}</td>
+                                        <td><b>${err.subject}</b></td>
+                                        <td>${err.topic}</td>
+                                        <td><span class="badge ${err.type==='Conceptual'?'badge-red':err.type==='Silly Mistake'?'badge-amber':'badge-purple'}">${err.type}</span></td>
+                                        <td>${err.cause}</td>
+                                        <td style="color:#34d399;">${err.takeaway}</td>
+                                        <td><button class="btn btn-danger btn-sm" onclick="deleteError(${i})">Delete</button></td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:32px;">No errors logged yet. Keeping a mistake notebook is essential for Gaokao top ranks!</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.openLogErrorModal = function() {
+            showModal('Record Mistake in Error Log', `
+                <form onsubmit="saveErrorLog(event)">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <select id="err-sub-select" required>
+                                ${db.subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Error Classification Type</label>
+                            <select id="err-type-select">
+                                <option value="Conceptual Error">Conceptual Error</option>
+                                <option value="Silly Mistake">Silly / Calculation Mistake</option>
+                                <option value="Formula Forgetting">Formula Forgetting</option>
+                                <option value="Time Pressure">Time Pressure / Rushed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Topic / Question ID</label>
+                        <input type="text" id="err-topic-input" placeholder="e.g. Algorithms LCS DP Table index off-by-one" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Root Cause Analysis (Why did you get it wrong?)</label>
+                        <textarea id="err-cause-input" rows="2" placeholder="Explain the mistake..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Correct Approach / Golden Takeaway</label>
+                        <textarea id="err-takeaway-input" rows="2" placeholder="What to remember next time..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Record Error Entry</button>
+                </form>
+            `);
+        };
+
+        window.saveErrorLog = function(e) {
+            e.preventDefault();
+            const err = {
+                date: getTodayStr(),
+                subject: document.getElementById('err-sub-select').value,
+                type: document.getElementById('err-type-select').value,
+                topic: document.getElementById('err-topic-input').value,
+                cause: document.getElementById('err-cause-input').value,
+                takeaway: document.getElementById('err-takeaway-input').value
+            };
+            db.errors.unshift(err);
+            saveDB();
+            closeModal();
+            toast('Mistake Recorded in Error Log!', 'success');
+            if(currentRoute === 'errors') renderErrors(document.querySelector('.page.active'));
+        };
+
+        window.deleteError = function(idx) {
+            db.errors.splice(idx, 1);
+            saveDB();
+            renderErrors(document.querySelector('.page.active'));
+            toast('Error Entry Removed', 'warning');
+        };
+
+        // ==========================================
+        // 6. METRICS & ANALYTICS SECTION
+        // ==========================================
+        function renderMetrics(container) {
+            // Count total blocks done
+            let totalDoneBlocks = 0;
+            Object.values(db.logs).forEach(l => {
+                if(l.blocks) {
+                    Object.values(l.blocks).forEach(b => {
+                        if(b === 'done') totalDoneBlocks++;
+                    });
+                }
+            });
+
+            container.innerHTML = `
+                <div class="header-bar">
+                    <div>
+                        <h1 class="page-title">Analytics & <span class="gradient-text">Metrics</span></h1>
+                        <p class="page-subtitle">Deep performance analytics and study consistency stats</p>
+                    </div>
+                </div>
+
+                <div class="grid-4" style="margin-bottom:24px;">
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Total Study Blocks Done</div>
+                        <div class="stat-pill-value">${totalDoneBlocks} Blocks</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Estimated Hours Logged</div>
+                        <div class="stat-pill-value">${totalDoneBlocks * 2} Hours</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Total Errors Tracked</div>
+                        <div class="stat-pill-value">${db.errors.length} Errors</div>
+                    </div>
+                    <div class="stat-pill">
+                        <div class="stat-pill-title">Total PYQs Logged</div>
+                        <div class="stat-pill-value">${db.pyqs.length} PYQs</div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">Phase Progress Overview</div>
+                        <div style="margin-top:16px; display:flex; flex-direction:column; gap:16px;">
+                            <div>
+                                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                                    <span>Phase 1: Learning (Aug 15 - Sep 30)</span>
+                                    <span>7 Weeks</span>
+                                </div>
+                                <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden;">
+                                    <div style="width:100%; height:100%; background:var(--accent-1);"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                                    <span>Phase 2: PYQ Marathon (Oct 1 - Nov 15)</span>
+                                    <span>7 Weeks</span>
+                                </div>
+                                <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden;">
+                                    <div style="width:100%; height:100%; background:var(--accent-2);"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                                    <span>Phase 3: Mock Test Hell (Nov 16 - Jan 15)</span>
+                                    <span>9 Weeks</span>
+                                </div>
+                                <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden;">
+                                    <div style="width:100%; height:100%; background:var(--warning);"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                                    <span>Phase 4: Final Sprint (Jan 16 - Feb 5)</span>
+                                    <span>3 Weeks</span>
+                                </div>
+                                <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden;">
+                                    <div style="width:100%; height:100%; background:var(--success);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Top Weakest Subjects (By Errors)</div>
+                        <div style="margin-top:16px;">
+                            ${renderWeaknessBreakdown()}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWeaknessBreakdown() {
+            const counts = {};
+            db.errors.forEach(e => {
+                counts[e.subject] = (counts[e.subject] || 0) + 1;
+            });
+            const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+            if(sorted.length === 0) return `<div style="color:var(--text-muted); font-size:13px;">No error data yet. Log errors to see weakness ranking.</div>`;
+
+            return sorted.slice(0, 5).map(([sub, cnt]) => `
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom:4px;">
+                        <span>${sub}</span>
+                        <span style="color:#f87171;">${cnt} Errors</span>
+                    </div>
+                    <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden;">
+                        <div style="width:${Math.min(100, cnt * 20)}%; height:100%; background:#ef4444;"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ==========================================
+        // 7. CALENDAR SECTION
+        // ==========================================
+        let calCurrentYear = 2026;
+        let calCurrentMonth = 7; // August (0-indexed)
+
+        function renderCalendar(container) {
+            container.innerHTML = `
+                <div class="header-bar">
+                    <div>
+                        <h1 class="page-title">180-Day <span class="gradient-text">Calendar Grid</span></h1>
+                        <p class="page-subtitle">Complete Schedule View from Aug 15, 2026 to Feb 5, 2027</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-secondary btn-sm" onclick="changeCalMonth(-1)">Prev Month</button>
+                        <span id="cal-month-title" style="font-weight:700; display:flex; align-items:center; padding:0 8px;"></span>
+                        <button class="btn btn-secondary btn-sm" onclick="changeCalMonth(1)">Next Month</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="cal-grid" id="calendar-days-grid"></div>
+                </div>
+            `;
+
+            updateCalendarGrid();
+        }
+
+        window.changeCalMonth = function(delta) {
+            calCurrentMonth += delta;
+            if(calCurrentMonth > 11) { calCurrentMonth = 0; calCurrentYear++; }
+            if(calCurrentMonth < 0) { calCurrentMonth = 11; calCurrentYear--; }
+            updateCalendarGrid();
+        };
+
+        function updateCalendarGrid() {
+            const grid = document.getElementById('calendar-days-grid');
+            const title = document.getElementById('cal-month-title');
+            if(!grid) return;
+
+            const months = ['August 2026', 'September 2026', 'October 2026', 'November 2026', 'December 2026', 'January 2027', 'February 2027'];
+            const mNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            title.innerText = `${mNames[calCurrentMonth]} ${calCurrentYear}`;
+
+            grid.innerHTML = `
+                <div class="cal-day-name">Sun</div>
+                <div class="cal-day-name">Mon</div>
+                <div class="cal-day-name">Tue</div>
+                <div class="cal-day-name">Wed</div>
+                <div class="cal-day-name">Thu</div>
+                <div class="cal-day-name">Fri</div>
+                <div class="cal-day-name">Sat</div>
+            `;
+
+            const firstDayIndex = new Date(calCurrentYear, calCurrentMonth, 1).getDay();
+            const totalDaysInMonth = new Date(calCurrentYear, calCurrentMonth + 1, 0).getDate();
+
+            for(let i = 0; i < firstDayIndex; i++) {
+                grid.innerHTML += `<div class="cal-day empty"></div>`;
+            }
+
+            const todayStr = getTodayStr();
+
+            for(let day = 1; day <= totalDaysInMonth; day++) {
+                const dateStr = `${calCurrentYear}-${String(calCurrentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const sch = SCHEDULE_MAP[dateStr];
+                const isToday = dateStr === todayStr;
+                const log = db.logs[dateStr];
+
+                let classes = 'cal-day';
+                if(isToday) classes += ' today';
+                if(sch && sch.type === 'mock') classes += ' has-mock';
+                if(sch && sch.type === 'subject_test') classes += ' has-test';
+                if(log) {
+                    const doneCount = Object.values(log.blocks || {}).filter(v => v === 'done').length;
+                    if(doneCount >= 3) classes += ' log-done';
+                }
+
+                let badge = '';
+                if(sch) {
+                    if(sch.type === 'mock') badge = `<span class="cal-day-badge badge-purple">MOCK</span>`;
+                    else if(sch.type === 'subject_test') badge = `<span class="cal-day-badge badge-amber">TEST</span>`;
+                    else if(sch.type === 'revision') badge = `<span class="cal-day-badge badge-green">REV</span>`;
+                }
+
+                grid.innerHTML += `
+                    <div class="${classes}" onclick="inspectCalDate('${dateStr}')">
+                        <div class="cal-day-num">${day}</div>
+                        <div>${badge}</div>
+                    </div>
+                `;
+            }
+        }
+
+        window.inspectCalDate = function(dateStr) {
+            const sch = SCHEDULE_MAP[dateStr];
+            if(!sch) {
+                toast(`No schedule entry for ${dateStr}`, 'info');
+                return;
+            }
+
+            showModal(`Schedule Details (${dateStr})`, `
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <span class="badge badge-indigo">Phase ${sch.phase}</span>
+                    <span class="badge badge-purple">Week ${sch.week}</span>
+                    <span class="badge badge-amber">${sch.type.toUpperCase()}</span>
+                </div>
+                <div class="block-card">
+                    <div class="block-info">
+                        <div class="block-title">🌅 Morning Session</div>
+                        <div class="block-desc">${sch.morning}</div>
+                    </div>
+                </div>
+                <div class="block-card">
+                    <div class="block-info">
+                        <div class="block-title">🌆 Afternoon Session</div>
+                        <div class="block-desc">${sch.afternoon}</div>
+                    </div>
+                </div>
+                ${sch.milestone ? `<div class="badge badge-amber" style="margin-top:12px; display:inline-block;">Milestone: ${sch.milestone}</div>` : ''}
+            `);
+        };
+
+        // ==========================================
+        // 8. SETTINGS SECTION
+        // ==========================================
+        function renderSettings(container) {
+            container.innerHTML = `
+                <div class="header-bar">
+                    <div>
+                        <h1 class="page-title">App <span class="gradient-text">Settings & Backup</span></h1>
+                        <p class="page-subtitle">Configure Target AIR, Hours Goal, & Data Management</p>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">User Goal Profile</div>
+                        <form onsubmit="saveSettingsForm(event)" style="margin-top:16px;">
+                            <div class="form-group">
+                                <label>Target AIR Rank</label>
+                                <input type="number" id="set-rank" value="${db.settings.targetRank}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Target Mock Score Marks</label>
+                                <input type="number" id="set-marks" value="${db.settings.targetMarks}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Daily Target Deep Work Hours</label>
+                                <input type="number" id="set-hours" value="${db.settings.dailyHoursGoal}" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width:100%;">Save Profile Settings</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Data Backup & Local Storage</div>
+                        <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
+                            <button class="btn btn-secondary" onclick="exportDataJSON()">📥 Export Data Backup (JSON)</button>
+                            <label class="btn btn-secondary" style="cursor:pointer; justify-content:center;">
+                                📤 Import Data Backup (JSON)
+                                <input type="file" accept=".json" style="display:none;" onchange="importDataJSON(event)">
+                            </label>
+                            <button class="btn btn-danger" style="margin-top:16px;" onclick="factoryResetApp()">⚠️ Danger: Factory Reset All Data</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.saveSettingsForm = function(e) {
+            e.preventDefault();
+            db.settings.targetRank = parseInt(document.getElementById('set-rank').value);
+            db.settings.targetMarks = parseInt(document.getElementById('set-marks').value);
+            db.settings.dailyHoursGoal = parseInt(document.getElementById('set-hours').value);
+            saveDB();
+            toast('Settings Saved!', 'success');
+        };
+
+        window.exportDataJSON = function() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+            const a = document.createElement('a');
+            a.setAttribute("href", dataStr);
+            a.setAttribute("download", `gate_2027_gaokao_backup_${getTodayStr()}.json`);
+            a.click();
+            toast('Backup Export Downloaded!', 'success');
+        };
+
+        window.importDataJSON = function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const imported = JSON.parse(event.target.result);
+                    if(imported.logs && imported.subjects) {
+                        db = imported;
+                        saveDB();
+                        toast('Backup Successfully Restored!', 'success');
+                        navigateTo('dashboard');
+                    } else {
+                        toast('Invalid backup JSON format', 'danger');
+                    }
+                } catch(err) {
+                    toast('Error parsing JSON file', 'danger');
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        window.factoryResetApp = function() {
+            if(confirm("Are you sure you want to RESET ALL DATA? All logged mocks, PYQs, and error entries will be wiped!")) {
+                localStorage.clear();
+                db = {
+                    logs: {},
+                    subjects: DEFAULT_SUBJECTS,
+                    pyqs: [],
+                    mocks: [],
+                    errors: [],
+                    settings: { targetRank: 50, targetMarks: 80, dailyHoursGoal: 8, pomoTime: 25, userName: 'GATE Warrior' }
+                };
+                saveDB();
+                toast('Factory Reset Complete', 'warning');
+                navigateTo('dashboard');
+            }
+        };
+
+        // ==========================================
+        // MODAL HELPERS
+        // ==========================================
+        function showModal(title, htmlContent) {
+            document.getElementById('modal-title-text').innerText = title;
+            document.getElementById('modal-body-content').innerHTML = htmlContent;
+            const modal = document.getElementById('app-modal');
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('app-modal');
+            modal.classList.remove('active');
+        }
+
+        function closeModalOnBg(e) {
+            if(e.target.id === 'app-modal') closeModal();
+        }
+
+        // ==========================================
+        // APPLICATION INITIALIZATION
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            navigateTo('dashboard');
+        });
+    </script>
+</body>
+</html>
